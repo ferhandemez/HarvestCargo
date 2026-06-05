@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harvest Cargo V1</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e5d9c5;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; 
+        }
+
+        #game-board {
+            width: 450px; 
+            padding: 30px;
+            background-color: #f4eee6;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 25px; 
+            position: relative;
+            align-items: center;
+        }
+
+        /* --- SKOR TABLOSU --- */
+        #score-board {
+            background-color: #d8cebe;
+            padding: 10px 25px;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #C13A1B;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: -10px;
+        }
+
+        #score-value {
+            font-size: 24px;
+            color: #F24822;
+        }
+
+        /* --- GAME OVER EKRANI --- */
+        #game-over-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            display: none; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            color: white;
+            text-align: center;
+        }
+
+        #game-over-title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #FFCD29;
+        }
+
+        #game-over-score {
+            font-size: 20px;
+            margin-bottom: 25px;
+        }
+
+        #restart-btn {
+            background-color: #14AE5C;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        #restart-btn:hover {
+            background-color: #0F8746;
+            transform: scale(1.05);
+        }
+
+        /* --- ÜST KISIM (MEYVE TAHTASI) --- */
+        #board-area {
+            display: grid;
+            grid-template-columns: repeat(7, 40px); 
+            gap: 5px;
+            background-color: #d8cebe;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.1);
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- SLOTLAR --- */
+        #slots-area {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            min-height: 140px;
+        }
+
+        .slot-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px;
+            width: 50px;
+            height: 130px;
+            padding: 6px;
+            border-radius: 8px;
+            background-color: #d8cebe;
+            transition: background-color 0.2s ease-in-out; 
+            transform-origin: bottom center;
+        }
+
+        /* --- HATLAR --- */
+        #lanes-area {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            height: 540px; 
+            width: 100%;
+            align-items: flex-start;
+        }
+
+        .lane {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 62px;
+            align-items: center;
+        }
+
+        .group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px;
+            background-color: rgba(0,0,0,0.05);
+            padding: 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .group:hover:not(.disabled) {
+            transform: scale(1.05);
+        }
+
+        .group.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* --- KUTULAR VE MEYVELER --- */
+        .box {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .box-empty {
+            width: 24px;
+            height: 24px;
+            background-color: transparent; 
+        }
+
+        .fruit {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .fruit-board {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            box-shadow: 2px 5px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Uçan Objeler */
+        .flyer {
+            position: absolute;
+            z-index: 1000;
+            pointer-events: none;
+            transition: left 0.1s ease-in-out, top 0.1s ease-in-out;
+        }
+        
+        .box-flyer {
+            box-shadow: 0 10px 15px rgba(0,0,0,0.3), inset 0 -2px 0 rgba(0,0,0,0.15);
+            transform: scale(1.15);
+        }
+
+        .fruit-flyer {
+            transform: scale(1.3);
+            box-shadow: 0 15px 20px rgba(0,0,0,0.4);
+            transition: left 0.15s ease-in-out, top 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* Animasyonlar */
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes deliverOut {
+            0% { transform: scale(1); opacity: 1; }
+            30% { transform: scale(1.1); opacity: 1; } 
+            100% { transform: translateY(-40px) scale(0.8); opacity: 0; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-board">
+        <div id="score-board">(V1) Skor: <span id="score-value">0</span></div>
+        
+        <div id="board-area"></div>
+        <div id="slots-area"></div>
+        <div id="lanes-area"></div>
+
+        <div id="game-over-screen">
+            <div id="game-over-title">Hamle Kalmadı!</div>
+            <div id="game-over-score">Toplam Teslimat: <span id="final-score">0</span></div>
+            <button id="restart-btn" onclick="restartGame()">Tekrar Oyna</button>
+        </div>
+    </div>
+
+    <script>
+        const PALETTE = {
+            red: { base: '#F24822', dark: '#C13A1B', light: '#ff7b7b' },
+            yellow: { base: '#FFCD29', dark: '#CC9D1A', light: '#ffe16b' },
+            blue: { base: '#00A3FF', dark: '#007AFA', light: '#70c3ff' }, 
+            green: { base: '#14AE5C', dark: '#0F8746', light: '#4ade80' }
+        };
+
+        const colorKeys = Object.keys(PALETTE);
+        
+        const SLOT_CAPACITY = 10;
+        const NUM_SLOTS = 5; 
+        const NUM_LANES = 3;
+        const GROUPS_PER_LANE = 3;
+        const NUM_COLS = 7;
+        const NUM_ROWS = 6;
+
+        let boardData, slotsData, lanesData, isAnimating, score;
+
+        const boardArea = document.getElementById('board-area');
+        const slotsArea = document.getElementById('slots-area');
+        const lanesArea = document.getElementById('lanes-area');
+        const scoreValueEl = document.getElementById('score-value');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreEl = document.getElementById('final-score');
+
+        const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+        function getFruitStyle(color) {
+            return `radial-gradient(circle at 30% 30%, ${PALETTE[color].light}, ${PALETTE[color].dark})`;
+        }
+
+        function initGame() {
+            score = 0;
+            scoreValueEl.innerText = score;
+            isAnimating = false;
+            gameOverScreen.style.display = 'none';
+
+            boardData = Array(NUM_COLS).fill(null).map(() => Array(NUM_ROWS).fill(null));
+            slotsData = Array(NUM_SLOTS).fill(null).map(() => ({ color: null, count: 0, filledCount: 0 }));
+            lanesData = Array(NUM_LANES).fill(null).map(() => []);
+
+            for (let c = 0; c < NUM_COLS; c++) {
+                for (let r = 0; r < NUM_ROWS; r++) {
+                    boardData[c][r] = colorKeys[Math.floor(Math.random() * colorKeys.length)];
+                }
+            }
+
+            for (let i = 0; i < NUM_LANES; i++) {
+                fillLane(i);
+            }
+            renderAll();
+        }
+
+        function fillLane(laneIndex) {
+            while (lanesData[laneIndex].length < GROUPS_PER_LANE) {
+                const randomColor = colorKeys[Math.floor(Math.random() * colorKeys.length)];
+                let count;
+                if (Math.random() < 0.80) {
+                    count = [2, 4, 6][Math.floor(Math.random() * 3)];
+                } else {
+                    count = [8, 10, 12][Math.floor(Math.random() * 3)];
+                }
+                lanesData[laneIndex].push({ color: randomColor, count: count });
+            }
+        }
+
+        function restartGame() {
+            initGame();
+        }
+
+        function checkGameOver() {
+            let possibleMoves = 0;
+
+            for (let i = 0; i < NUM_LANES; i++) {
+                if (lanesData[i].length > 0) {
+                    const groupColor = lanesData[i][0].color;
+                    let availableSpace = 0;
+                    for (let s of slotsData) {
+                        if (s.color === groupColor) {
+                            availableSpace += (SLOT_CAPACITY - s.count);
+                        } else if (s.color === null) {
+                            availableSpace += SLOT_CAPACITY;
+                        }
+                    }
+                    if (availableSpace > 0) {
+                        possibleMoves++;
+                    }
+                }
+            }
+
+            if (possibleMoves === 0) {
+                finalScoreEl.innerText = score;
+                gameOverScreen.style.display = 'flex';
+            }
+        }
+
+        function flyElement(sourceRect, targetRect, type, color) {
+            return new Promise(resolve => {
+                const flyer = document.createElement('div');
+                flyer.className = type === 'box' ? 'box flyer box-flyer' : 'fruit flyer fruit-flyer';
+                
+                if (type === 'box') {
+                    flyer.style.backgroundColor = PALETTE[color].base;
+                } else {
+                    flyer.style.background = getFruitStyle(color);
+                }
+                
+                flyer.style.left = sourceRect.left + 'px';
+                flyer.style.top = sourceRect.top + 'px';
+                document.body.appendChild(flyer);
+
+                flyer.getBoundingClientRect();
+
+                flyer.style.left = targetRect.left + 'px';
+                flyer.style.top = targetRect.top + 'px';
+
+                setTimeout(() => {
+                    flyer.remove();
+                    resolve();
+                }, type === 'box' ? 90 : 150); 
+            });
+        }
+
+        async function handleGroupClick(laneIndex) {
+            if (isAnimating) return;
+
+            const group = lanesData[laneIndex][0];
+            const groupColor = group.color;
+
+            let availableSpace = 0;
+            for (let s of slotsData) {
+                if (s.color === groupColor) {
+                    availableSpace += (SLOT_CAPACITY - s.count);
+                } else if (s.color === null) {
+                    availableSpace += SLOT_CAPACITY;
+                }
+            }
+
+            if (availableSpace === 0) {
+                return;
+            }
+
+            isAnimating = true;
+
+            // İŞTE BAHSETTİĞİN KONTROL BURADA ÇALIŞIYOR:
+            // Diyelim ki group.count = 12, availableSpace (son boş slot) = 10.
+            // boxesToMove = 10 olur. Sadece 10 adet kutu yola çıkar, kalan 2'si grupta bekler.
+            let boxesToMove = Math.min(group.count, availableSpace);
+
+            while (boxesToMove > 0) {
+                let targetSlotIndex = -1;
+                
+                for (let i = 0; i < NUM_SLOTS; i++) {
+                    if (slotsData[i].color === groupColor && slotsData[i].count < SLOT_CAPACITY) {
+                        targetSlotIndex = i; break;
+                    }
+                }
+                
+                if (targetSlotIndex === -1) {
+                    for (let i = 0; i < NUM_SLOTS; i++) {
+                        if (slotsData[i].color === null) {
+                            targetSlotIndex = i;
+                            slotsData[i].color = groupColor; break;
+                        }
+                    }
+                }
+
+                const sourceGroupEl = document.getElementById(`lane-${laneIndex}-group-0`);
+                const sourceBoxes = sourceGroupEl.querySelectorAll('.box');
+                const sourceBox = sourceBoxes[sourceBoxes.length - 1]; 
+
+                const slotEl = document.getElementById(`slot-${targetSlotIndex}`);
+                const emptyBoxes = slotEl.querySelectorAll('.box-empty');
+                const targetBox = emptyBoxes[emptyBoxes.length - 1]; 
+
+                const sourceRect = sourceBox.getBoundingClientRect();
+                const targetRect = targetBox.getBoundingClientRect();
+
+                sourceBox.style.opacity = '0';
+
+                await flyElement(sourceRect, targetRect, 'box', groupColor);
+
+                slotsData[targetSlotIndex].count++;
+                group.count--; 
+                boxesToMove--;
+
+                renderSlots(true, targetSlotIndex);
+                renderLanes(); 
+            }
+
+            if (group.count === 0) {
+                lanesData[laneIndex].shift();
+                fillLane(laneIndex);
+            }
+            
+            renderAll();
+            
+            await processFruitDrops();
+
+            checkGameOver();
+
+            isAnimating = false;
+        }
+
+        async function processFruitDrops() {
+            let droppedAny = true;
+            
+            while (droppedAny) {
+                droppedAny = false;
+                
+                for (let c = 0; c < NUM_COLS; c++) {
+                    let bottomFruitRow = -1;
+                    let bottomColor = null;
+
+                    for (let r = NUM_ROWS - 1; r >= 0; r--) {
+                        if (boardData[c][r] !== null) {
+                            bottomFruitRow = r;
+                            bottomColor = boardData[c][r];
+                            break;
+                        }
+                    }
+
+                    if (bottomColor) {
+                        let targetSlotIndex = -1;
+                        for (let s = 0; s < NUM_SLOTS; s++) {
+                            if (slotsData[s].color === bottomColor && slotsData[s].filledCount < slotsData[s].count) {
+                                targetSlotIndex = s;
+                                break;
+                            }
+                        }
+
+                        if (targetSlotIndex !== -1) {
+                            droppedAny = true; 
+
+                            const sourceCell = document.getElementById(`board-${c}-${bottomFruitRow}`);
+                            const sourceFruit = sourceCell.querySelector('.fruit-board');
+                            const sourceRect = sourceFruit.getBoundingClientRect();
+                            
+                            const slotEl = document.getElementById(`slot-${targetSlotIndex}`);
+                            
+                            const targetBoxIndex = SLOT_CAPACITY - slotsData[targetSlotIndex].filledCount - 1;
+                            const targetBox = slotEl.children[targetBoxIndex];
+                            const targetRect = targetBox.getBoundingClientRect();
+
+                            sourceFruit.style.opacity = '0';
+
+                            await flyElement(sourceRect, targetRect, 'fruit', bottomColor);
+
+                            slotsData[targetSlotIndex].filledCount++;
+
+                            for (let i = bottomFruitRow; i > 0; i--) {
+                                boardData[c][i] = boardData[c][i-1];
+                            }
+                            boardData[c][0] = colorKeys[Math.floor(Math.random() * colorKeys.length)];
+
+                            renderAll(true, targetSlotIndex, 'fruit'); 
+                            await sleep(50); 
+                            
+                            if (slotsData[targetSlotIndex].filledCount === SLOT_CAPACITY) {
+                                renderAll();
+                                
+                                const fullSlotEl = document.getElementById(`slot-${targetSlotIndex}`);
+                                fullSlotEl.style.animation = "deliverOut 0.3s ease-in forwards";
+                                
+                                await sleep(300); 
+                                
+                                slotsData[targetSlotIndex] = { color: null, count: 0, filledCount: 0 };
+                                
+                                score += 10;
+                                scoreValueEl.innerText = score;
+
+                                renderAll();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function renderAll(isAnimatingFrame = false, animatedIndex = -1, type = 'box') {
+            renderBoard();
+            renderSlots(isAnimatingFrame && type === 'box', type === 'box' ? animatedIndex : -1, isAnimatingFrame && type === 'fruit', type === 'fruit' ? animatedIndex : -1);
+            renderLanes();
+        }
+
+        function renderBoard() {
+            boardArea.innerHTML = '';
+            for (let r = 0; r < NUM_ROWS; r++) {
+                for (let c = 0; c < NUM_COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `board-${c}-${r}`; 
+
+                    const color = boardData[c][r];
+                    if (color) {
+                        const fruit = document.createElement('div');
+                        fruit.className = 'fruit-board';
+                        fruit.style.background = getFruitStyle(color);
+                        cell.appendChild(fruit);
+                    }
+                    boardArea.appendChild(cell);
+                }
+            }
+        }
+
+        function renderSlots(animateBox = false, animatedBoxSlotIndex = -1, animateFruit = false, animatedFruitSlotIndex = -1) {
+            slotsArea.innerHTML = '';
+            slotsData.forEach((slot, index) => {
+                const grid = document.createElement('div');
+                grid.className = 'slot-grid';
+                grid.id = `slot-${index}`; 
+
+                if (slot.count > 0 && slot.color) {
+                    grid.style.backgroundColor = PALETTE[slot.color].dark;
+                } else {
+                    grid.style.backgroundColor = '#d8cebe';
+                }
+
+                const emptyCellsCount = SLOT_CAPACITY - slot.count;
+                for (let i = 0; i < SLOT_CAPACITY; i++) {
+                    const box = document.createElement('div');
+                    if (i < emptyCellsCount) {
+                        box.className = 'box-empty';
+                    } else {
+                        box.className = 'box';
+                        box.style.backgroundColor = PALETTE[slot.color].base;
+                        
+                        if (i >= SLOT_CAPACITY - slot.filledCount) {
+                            const fruit = document.createElement('div');
+                            fruit.className = 'fruit';
+                            fruit.style.background = getFruitStyle(slot.color);
+                            
+                            if (animateFruit && index === animatedFruitSlotIndex && i === SLOT_CAPACITY - slot.filledCount) {
+                                fruit.style.animation = "popIn 0.15s ease-out forwards";
+                            }
+                            box.appendChild(fruit);
+                        } else if (animateBox && index === animatedBoxSlotIndex && i === emptyCellsCount) {
+                            box.style.animation = "popIn 0.10s ease-out forwards";
+                        }
+                    }
+                    grid.appendChild(box);
+                }
+                slotsArea.appendChild(grid);
+            });
+        }
+
+        function renderLanes() {
+            lanesArea.innerHTML = '';
+            lanesData.forEach((laneQueue, laneIndex) => {
+                const laneElement = document.createElement('div');
+                laneElement.className = 'lane';
+
+                laneQueue.forEach((group, groupIndex) => {
+                    if (group.count === 0) return; 
+
+                    const groupEl = document.createElement('div');
+                    groupEl.className = 'group';
+                    groupEl.id = `lane-${laneIndex}-group-${groupIndex}`; 
+                    
+                    if (groupIndex === 0) {
+                        groupEl.onclick = () => handleGroupClick(laneIndex);
+                    } else {
+                        groupEl.classList.add('disabled');
+                    }
+
+                    for (let i = 0; i < group.count; i++) {
+                        const box = document.createElement('div');
+                        box.className = 'box';
+                        box.style.backgroundColor = PALETTE[group.color].base;
+                        groupEl.appendChild(box);
+                    }
+                    laneElement.appendChild(groupEl);
+                });
+                lanesArea.appendChild(laneElement);
+            });
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
