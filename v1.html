@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Harvest Cargo V1 - Akıllı Eşleşme (Çok Meyveli Öncelik - 7x6)</title>
+    <title>Harvest Cargo V1</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -474,10 +474,12 @@
 
                     if (bottomColor) {
                         let targetSlotIndex = -1;
-                        let maxFilledCount = -1; 
+                        let maxFilledCount = -1; // YENİ KURAL: En çok meyve (filledCount) olan slotu bulacağız
 
                         for (let s = 0; s < NUM_SLOTS; s++) {
+                            // Slot rengi uygunsa VE içinde meyve alabilecek boş kutu varsa
                             if (slotsData[s].color === bottomColor && slotsData[s].filledCount < slotsData[s].count) {
+                                // En çok meyve barındıran slotu seç
                                 if (slotsData[s].filledCount > maxFilledCount) {
                                     maxFilledCount = slotsData[s].filledCount;
                                     targetSlotIndex = s;
