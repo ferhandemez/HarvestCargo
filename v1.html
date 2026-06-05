@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Harvest Cargo V1</title>
+    <title>Harvest Cargo V1 - Akıllı Eşleşme (Çok Meyveli Öncelik - 7x6)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -397,9 +397,6 @@
 
             isAnimating = true;
 
-            // İŞTE BAHSETTİĞİN KONTROL BURADA ÇALIŞIYOR:
-            // Diyelim ki group.count = 12, availableSpace (son boş slot) = 10.
-            // boxesToMove = 10 olur. Sadece 10 adet kutu yola çıkar, kalan 2'si grupta bekler.
             let boxesToMove = Math.min(group.count, availableSpace);
 
             while (boxesToMove > 0) {
@@ -477,10 +474,14 @@
 
                     if (bottomColor) {
                         let targetSlotIndex = -1;
+                        let maxFilledCount = -1; 
+
                         for (let s = 0; s < NUM_SLOTS; s++) {
                             if (slotsData[s].color === bottomColor && slotsData[s].filledCount < slotsData[s].count) {
-                                targetSlotIndex = s;
-                                break;
+                                if (slotsData[s].filledCount > maxFilledCount) {
+                                    maxFilledCount = slotsData[s].filledCount;
+                                    targetSlotIndex = s;
+                                }
                             }
                         }
 
